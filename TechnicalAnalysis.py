@@ -170,4 +170,5 @@ if __name__ == '__main__':
 	aapl = TechnicalAnalysis.relativeStrengthIndex(aapl)
 	aapl = TechnicalAnalysis.fourierTrend(aapl)
 	aapl = TechnicalAnalysis.averageDirectionalIndex(aapl)
+	aapl.dropna(inplace = True)
 	print(aapl)
