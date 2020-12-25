@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 
-class Technical():
+class TechnicalAnalysis():
 
+
+	@staticmethod
 	def wilderSmoothing(stock, period, metric = 'Close'):
 		
 		stock['WA'] = stock[metric].ewm(alpha = (1.0 / period), adjust = False).mean()
@@ -10,6 +12,7 @@ class Technical():
 		return stock
 
 
+	@staticmethod
 	def movingAverage(stock, metric = 'Close', long_interval = 30, short_interval = 7, std_interval = 29, bollinger = True):
 		
 		stock['MA_{}'.format(short_interval)] = stock[metric].rolling(window = short_interval).mean()
@@ -23,13 +26,14 @@ class Technical():
 		stock['Momentum'] = stock[metric] - 1
 
 		if(bollinger):
-			stock['STD'] = pd.stats.moments.rolling_std(stock[metric], std_interval)
+			stock['STD'] = stock[metric].rolling(window = std_interval).std()
 			stock['UpperBound'] = stock['MA_{}'.format(long_interval)] + (2 * stock['STD'])
 			stock['LowerBound'] = stock['MA_{}'.format(long_interval)] - (2 * stock['STD'])
 
 		return stock
 
 
+	@staticmethod
 	def expMovingAverage(stock, metric = 'Close', long_interval = 26, short_interval = 12):
 
 		stock['EMA_{}'.format(short_interval)] = stock[metric].ewm(span = short_interval).mean()
@@ -40,18 +44,20 @@ class Technical():
 		return stock
 
 
+	@staticmethod
 	def averageTrueRange(stock):
 
 		stock['PrevClose'] = stock['Close'].shift(1)
 		stock['PrevClose'][0] = stock['Close'][0]
 		stock['TR'] = np.maximum((stock['High'] - stock['Low']), np.maximum(abs(stock['High'] - stock['PrevClose']), abs(stock['Low'] - stock['PrevClose'])))
-		stock['ATR_5'] = stock['TR'].ewm(span = 5, alpha = (1 / 3)).mean()
-		stock['ATR_15'] = stock['TR'].ewm(span = 15, alpha = (1 / 8)).mean()
+		stock['ATR_5'] = stock['TR'].ewm(span = 5).mean()
+		stock['ATR_15'] = stock['TR'].ewm(span = 15).mean()
 		stock['ATR_Ratio'] = stock['ATR_5'] / stock['ATR_15']
 
 		return stock
 
 
+	@staticmethod
 	def rateOfChange(stock, metric = 'Close', period = 15):
 
 		stock['ROC'] = stock[metric].pct_change(periods = period)
@@ -59,6 +65,7 @@ class Technical():
 		return stock
 
 
+	@staticmethod
 	def stochasticOscillators(stock):
 
 		stock['Lowest_5D'] = stock['Low'].rolling(window = 5).min()
@@ -74,36 +81,40 @@ class Technical():
 		return stock
 
 
+	@staticmethod
 	def fourierTrend(stock):
 
-		stock_fft = np.fft.fft(np.asarray(stock['Close'].tolist()))
-		fft_data = pd.DataFrame({'fft': stock_fftc})
+		stock_fft = np.fft.fft(np.asarray(list(stock['Close'])))
+		print(stock_fft)
+		fft_data = pd.DataFrame({'fft': stock_fft})
 		stock['FourierRough'] = fft_data
-		stock['Absolute'] = fft_data['fft'].apply(lambda x: np.abs(x))
-		stock['Angle'] = fft_data['fft'].apply(lambda x: np.angle(x)) 
+		stock['Absolute'] = stock['FourierRough'].apply(lambda x: np.abs(x))
+		stock['Angle'] = stock['FourierRough'].apply(lambda x: np.angle(x)) 
 
 		return stock
 
-		
-	def relativeStrengthIndex(stock):
+
+	@staticmethod
+	def relativeStrengthIndex(stock, n = 15):
 		
 		delta = stock['Close'].diff()
 		dUp, dDown = delta.copy(), delta.copy()
 		dUp[dUp < 0] = 0
 		dDown[dDown > 0] = 0
-		RolUp = pd.rolling_mean(dUp, n)
-		RolDown = pd.rolling_mean(dDown, n).abs()
+		RolUp = dUp.rolling(window = n).mean()
+		RolDown = dDown.rolling(window = n).mean().abs()
 		RS = RolUp / RolDown
 		stock['RSI'] = 100.0 - (100.0 / (1.0 + RS))
 		
 		return stock
 
 
+	@staticmethod
 	def averageDirectionalIndex(stock):
 
 		def getCDM(stock):
-			dmpos = stock["High"][-1] - stock["High"][-2]
-			dmneg = stock["Low"][-2] - stock["Low"][-1]
+			dmpos = stock["High"][len(stock) - 1] - stock["High"][len(stock) - 2]
+			dmneg = stock["Low"][len(stock) - 2] - stock["Low"][len(stock) - 1]
 			if dmpos > dmneg:
 				return dmpos
 			else:
@@ -145,3 +156,18 @@ class Technical():
 		stock['ADX'] = getADX(stock)
 
 		return stock
+
+if __name__ == '__main__':
+	PATH = r'C:\Users\tanus\Deep Learning\Current Datasets\Yahoo Finance Historical Data\AAPL.csv'
+	aapl = pd.DataFrame(pd.read_csv(PATH))
+	aapl.dropna(inplace = True)
+	aapl = TechnicalAnalysis.movingAverage(aapl)
+	aapl = TechnicalAnalysis.wilderSmoothing(aapl, period = 30)
+	aapl = TechnicalAnalysis.expMovingAverage(aapl)
+	aapl = TechnicalAnalysis.averageTrueRange(aapl)
+	aapl = TechnicalAnalysis.rateOfChange(aapl)
+	aapl = TechnicalAnalysis.stochasticOscillators(aapl)
+	aapl = TechnicalAnalysis.relativeStrengthIndex(aapl)
+	aapl = TechnicalAnalysis.fourierTrend(aapl)
+	aapl = TechnicalAnalysis.averageDirectionalIndex(aapl)
+	print(aapl)
