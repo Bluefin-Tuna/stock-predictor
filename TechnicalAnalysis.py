@@ -47,9 +47,9 @@ class TechnicalAnalysis():
 	@staticmethod
 	def averageTrueRange(stock):
 
-		stock['PrevClose'] = stock['Close'].shift(1)
-		stock['PrevClose'][0] = stock['Close'][0]
-		stock['TR'] = np.maximum((stock['High'] - stock['Low']), np.maximum(abs(stock['High'] - stock['PrevClose']), abs(stock['Low'] - stock['PrevClose'])))
+		previous_close = stock['Close'].shift(1)
+		previous_close[0] = stock['Close'][0]
+		stock['TR'] = np.maximum((stock['High'] - stock['Low']), np.maximum(abs(stock['High'] - previous_close), abs(stock['Low'] - previous_close)))
 		stock['ATR_5'] = stock['TR'].ewm(span = 5).mean()
 		stock['ATR_15'] = stock['TR'].ewm(span = 15).mean()
 		stock['ATR_Ratio'] = stock['ATR_5'] / stock['ATR_15']
@@ -158,7 +158,7 @@ class TechnicalAnalysis():
 		return stock
 
 if __name__ == '__main__':
-	PATH = r'C:\Users\tanus\Deep Learning\Current Datasets\Yahoo Finance Historical Data\AAPL.csv'
+	PATH = r'C:\Users\Tanush\Deep Learning\Current Datasets\Yahoo Finance Historical Data\AAPL.csv'
 	aapl = pd.DataFrame(pd.read_csv(PATH))
 	aapl.dropna(inplace = True)
 	aapl = TechnicalAnalysis.movingAverage(aapl)
@@ -171,4 +171,4 @@ if __name__ == '__main__':
 	aapl = TechnicalAnalysis.fourierTrend(aapl)
 	aapl = TechnicalAnalysis.averageDirectionalIndex(aapl)
 	aapl.dropna(inplace = True)
-	print(aapl)
+	print(aapl['Lowest_5D'])
